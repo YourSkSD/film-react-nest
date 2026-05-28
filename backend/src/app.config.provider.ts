@@ -1,7 +1,6 @@
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 
 export const configProvider = {
-  imports: [ConfigModule.forRoot()],
   provide: 'CONFIG',
   inject: [ConfigService],
   useFactory: (configService: ConfigService): AppConfig => ({

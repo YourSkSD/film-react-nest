@@ -4,12 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as path from 'path';
 import { configProvider } from './app.config.provider';
-import { FilmsController } from './films/films.controller';
-import { FilmsService } from './films/films.service';
-import { OrderController } from './order/order.controller';
-import { OrderService } from './order/order.service';
-import { FilmsMongoRepository } from './repository/films.mongo.repository';
-import { Film, FilmSchema } from './repository/schemas/film.schema';
+import { FilmsModule } from './films/films.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -20,7 +16,6 @@ import { Film, FilmSchema } from './repository/schemas/film.schema';
         uri: config.get<string>('DATABASE_URL'),
       }),
     }),
-    MongooseModule.forFeature([{ name: Film.name, schema: FilmSchema }]),
     ServeStaticModule.forRoot({
       rootPath: path.join(__dirname, '..', 'public', 'content', 'afisha'),
       serveRoot: '/content/afisha',
@@ -29,16 +24,9 @@ import { Film, FilmSchema } from './repository/schemas/film.schema';
         index: false,
       },
     }),
+    FilmsModule,
+    OrderModule,
   ],
-  controllers: [FilmsController, OrderController],
-  providers: [
-    configProvider,
-    FilmsService,
-    OrderService,
-    {
-      provide: 'FILMS_REPOSITORY',
-      useClass: FilmsMongoRepository,
-    },
-  ],
+  providers: [configProvider],
 })
 export class AppModule {}

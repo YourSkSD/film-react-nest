@@ -35,15 +35,20 @@ export class FilmsMongoRepository implements IFilmsRepository {
     return film?.schedule ?? null;
   }
 
-  async updateTaken(
+  async bookSeatAtomic(
     filmId: string,
     sessionId: string,
-    taken: string[],
-  ): Promise<void> {
-    await this.filmModel.updateOne(
-      { id: filmId, 'schedule.id': sessionId },
-      { $set: { 'schedule.$.taken': taken } },
+    seatKey: string,
+  ): Promise<boolean> {
+    const result = await this.filmModel.updateOne(
+      {
+        id: filmId,
+        'schedule.id': sessionId,
+        'schedule.taken': { $ne: seatKey },
+      },
+      { $push: { 'schedule.$.taken': seatKey } },
     );
+    return result.matchedCount > 0;
   }
 
   private toFilmDto(film: FilmLean): FilmDto {
