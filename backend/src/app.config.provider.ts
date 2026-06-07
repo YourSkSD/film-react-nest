@@ -5,11 +5,12 @@ export const configProvider = {
   inject: [ConfigService],
   useFactory: (configService: ConfigService): AppConfig => ({
     database: {
-      driver: configService.get<string>('DATABASE_DRIVER', 'mongodb'),
       url: configService.get<string>(
         'DATABASE_URL',
-        'mongodb://localhost:27017/afisha',
+        'postgres://localhost:5432/prac',
       ),
+      username: configService.get<string>('DATABASE_USERNAME', 'postgres'),
+      password: configService.get<string>('DATABASE_PASSWORD', 'postgres'),
     },
   }),
 };
@@ -19,6 +20,7 @@ export interface AppConfig {
 }
 
 export interface AppConfigDatabase {
-  driver: string;
   url: string;
+  username: string;
+  password: string;
 }
