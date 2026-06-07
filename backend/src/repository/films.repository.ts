@@ -15,22 +15,24 @@ export class FilmsRepository implements IFilmsRepository {
   constructor(
     @InjectRepository(Film)
     private filmRepository: Repository<Film>,
-    private dataSource: DataSource, // исправлено: dataSource вместо dataSource в использовании
+    // DataSource нужен для управления транзакциями в bookSeatAtomic
+    private dataSource: DataSource,
   ) {}
 
   async getAll(): Promise<FilmDto[]> {
+    // Явно выбираем поля, исключая schedule (аналог { schedule: 0 })
     const films = await this.filmRepository.find({
-      select: {
-        id: true,
-        title: true,
-        about: true,
-        description: true,
-        director: true,
-        rating: true,
-        tags: true,
-        image: true,
-        cover: true,
-      },
+      select: [
+        'id',
+        'title',
+        'about',
+        'description',
+        'director',
+        'rating',
+        'tags',
+        'image',
+        'cover',
+      ],
     });
     return films.map((film) => this.toFilmDto(film));
   }
@@ -38,9 +40,7 @@ export class FilmsRepository implements IFilmsRepository {
   async getById(id: string): Promise<FilmWithScheduleDto | null> {
     const film = await this.filmRepository.findOne({
       where: { id },
-      relations: {
-        schedule: true,
-      },
+      relations: ['schedule'], // Подгружаем связанные сеансы
     });
     if (!film) return null;
     return this.toFilmWithScheduleDto(film);
@@ -49,12 +49,8 @@ export class FilmsRepository implements IFilmsRepository {
   async getSchedule(id: string): Promise<ScheduleDto[] | null> {
     const film = await this.filmRepository.findOne({
       where: { id },
-      relations: {
-        schedule: true,
-      },
-      select: {
-        id: true, // загружаем только ID фильма
-      },
+      relations: ['schedule'],
+      select: ['id'], // Оптимизация: загружаем только ID фильма и его schedule
     });
     return film ? film.schedule : null;
   }
@@ -64,7 +60,7 @@ export class FilmsRepository implements IFilmsRepository {
     sessionId: string,
     seatKey: string,
   ): Promise<boolean> {
-    const queryRunner = this.dataSource.createQueryRunner(); // исправлено: dataSource
+    const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -79,18 +75,38 @@ export class FilmsRepository implements IFilmsRepository {
         return false;
       }
 
+      // Защитная инициализация и преобразование
+      if (!Array.isArray(schedule.taken)) {
+        if (schedule.taken === null || schedule.taken === undefined) {
+          schedule.taken = [];
+        } else if (typeof schedule.taken === 'string') {
+          try {
+            // Пытаемся распарсить как JSON
+            const parsed = JSON.parse(schedule.taken);
+            schedule.taken = Array.isArray(parsed) ? parsed : [];
+          } catch {
+            // Если не JSON, создаём пустой массив
+            schedule.taken = [];
+          }
+        } else {
+          // Если другой тип — приводим к массиву
+          schedule.taken = [schedule.taken].filter(Boolean);
+        }
+      }
+
+      // Проверяем, не занято ли уже место
       if (schedule.taken.includes(seatKey)) {
         await queryRunner.rollbackTransaction();
         return false;
       }
 
+      // Добавляем место в занятые
       schedule.taken.push(seatKey);
-      await queryRunner.manager.save(schedule);
 
+      await queryRunner.manager.save(schedule);
       await queryRunner.commitTransaction();
       return true;
     } catch (err) {
-      console.error('Transaction failed:', err);
       await queryRunner.rollbackTransaction();
       throw err;
     } finally {

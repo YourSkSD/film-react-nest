@@ -3,7 +3,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as path from 'path';
-import { configProvider, AppConfig } from './app.config.provider';
+import { configProvider } from './app.config.provider';
 import { FilmsModule } from './films/films.module';
 import { OrderModule } from './order/order.module';
 import { Film } from './repository/entities/film.entity';
@@ -19,9 +19,18 @@ import { Schedule } from './repository/entities/schedule.entity';
       imports: [ConfigModule], // добавляем импорт ConfigModule
       inject: [ConfigService], // внедряем ConfigService напрямую
       useFactory: (configService: ConfigService) => {
-        const dbUrl = configService.get<string>('DATABASE_URL', 'postgres://localhost:5432/prac');
-        const username = configService.get<string>('DATABASE_USERNAME', 'postgres');
-        const password = configService.get<string>('DATABASE_PASSWORD', 'postgres');
+        const dbUrl = configService.get<string>(
+          'DATABASE_URL',
+          'postgres://localhost:5432/prac',
+        );
+        const username = configService.get<string>(
+          'DATABASE_USERNAME',
+          'postgres',
+        );
+        const password = configService.get<string>(
+          'DATABASE_PASSWORD',
+          'postgres',
+        );
 
         return {
           type: 'postgres',
