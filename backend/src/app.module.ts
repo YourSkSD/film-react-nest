@@ -21,7 +21,7 @@ import { Schedule } from './repository/entities/schedule.entity';
       useFactory: (configService: ConfigService) => {
         const dbUrl = configService.get<string>(
           'DATABASE_URL',
-          'postgres://localhost:5432/prac',
+          'postgres://postgres:postgres@localhost:5432/prac',
         );
         const username = configService.get<string>(
           'DATABASE_USERNAME',
@@ -32,8 +32,10 @@ import { Schedule } from './repository/entities/schedule.entity';
           'postgres',
         );
 
+        const type = configService.get<string>(' DATABASE_DRIVER', 'postgres');
+
         return {
-          type: 'postgres',
+          type: type,
           url: dbUrl,
           username,
           password,

@@ -7,10 +7,11 @@ export const configProvider = {
     database: {
       url: configService.get<string>(
         'DATABASE_URL',
-        'postgres://localhost:5432/prac',
+        'postgres://postgres:postgres@localhost:5432/prac',
       ),
       username: configService.get<string>('DATABASE_USERNAME', 'postgres'),
       password: configService.get<string>('DATABASE_PASSWORD', 'postgres'),
+      driver: configService.get<string>('DATABASE_DRIVER', 'postgres'),
     },
   }),
 };
@@ -23,4 +24,5 @@ export interface AppConfigDatabase {
   url: string;
   username: string;
   password: string;
+  driver: string;
 }
