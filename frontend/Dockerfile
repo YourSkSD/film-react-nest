@@ -13,4 +13,5 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# Fail the build if the HTML entry was emitted empty (e.g. stale cache).
+RUN npm run build && test -s dist/index.html
