@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto, TicketDto, TicketResponseDto } from './dto/order.dto';
 import { IFilmsRepository } from '../repository/films.repository.interface';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class OrderService {
@@ -15,7 +15,7 @@ export class OrderService {
 
     for (const ticket of dto.tickets) {
       await this.bookSeat(ticket);
-      result.push({ ...ticket, id: uuidv4() });
+      result.push({ ...ticket, id: randomUUID() });
     }
 
     return result;

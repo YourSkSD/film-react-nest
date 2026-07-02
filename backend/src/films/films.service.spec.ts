@@ -1,46 +1,42 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilmsService } from './films.service';
+import { IFilmsRepository } from '../repository/films.repository.interface';
 import { fixtures } from './films.fixtures';
 
 describe('FilmsService', () => {
   let service: FilmsService;
 
+  const filmsRepository: IFilmsRepository = {
+    getAll: jest.fn().mockResolvedValue(fixtures.films),
+    getById: jest.fn().mockResolvedValue(fixtures.film),
+    getSchedule: jest.fn().mockResolvedValue(fixtures.schedule),
+    bookSeatAtomic: jest.fn().mockResolvedValue(true),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [FilmsService],
-    })
-      .useMocker((token) => {
-        if (token === 'REPOSITORY') {
-          return {
-            films: {
-              findAll: jest.fn().mockResolvedValue(fixtures.films),
-              findById: jest.fn().mockResolvedValue(fixtures.film),
-              save: jest.fn().mockResolvedValue(fixtures.film.id),
-            },
-          };
-        }
-        throw new Error(`Token ${token.toString()} not found!`);
-      })
-      .compile();
+      providers: [
+        FilmsService,
+        { provide: 'FILMS_REPOSITORY', useValue: filmsRepository },
+      ],
+    }).compile();
 
     service = module.get<FilmsService>(FilmsService);
   });
 
-  it('should find all films', async () => {
+  it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should return all films', async () => {
     const films = await service.getAll();
-    expect(films).toEqual(films);
+    expect(filmsRepository.getAll).toHaveBeenCalled();
+    expect(films).toEqual(fixtures.films);
   });
 
-  it('should find one film', async () => {
-    expect(service).toBeDefined();
-    const films = await service.getSchedule('11');
-    expect(films).toEqual(fixtures.film);
-  });
-
-  it('should save film', async () => {
-    expect(service).toBeDefined();
-    const id = await service.save(fixtures.film);
-    expect(id).toEqual(fixtures.film.id);
+  it('should return the schedule of a film', async () => {
+    const schedule = await service.getSchedule(fixtures.film.id);
+    expect(filmsRepository.getSchedule).toHaveBeenCalledWith(fixtures.film.id);
+    expect(schedule).toEqual(fixtures.schedule);
   });
 });

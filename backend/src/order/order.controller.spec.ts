@@ -1,55 +1,56 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { fixtures as filmFixtures } from '../films/films.fixtures';
 import { OrderController } from './order.controller';
-import { fixtures } from './order.fixtures';
-import { FilmsService } from '../films/films.service';
 import { OrderService } from './order.service';
-
-const fakeRepository = {
-  films: {
-    findAll: jest.fn().mockResolvedValue(filmFixtures.films),
-    findById: jest.fn().mockResolvedValue(filmFixtures.film),
-    save: jest.fn().mockResolvedValue(filmFixtures.film.id),
-  },
-};
+import { IFilmsRepository } from '../repository/films.repository.interface';
+import { fixtures } from './order.fixtures';
 
 describe('OrderController', () => {
   let controller: OrderController;
 
+  // Занятым считается место 1:2, все остальные свободны
+  const filmsRepository: Partial<IFilmsRepository> = {
+    bookSeatAtomic: jest.fn(
+      (_filmId: string, _sessionId: string, seatKey: string) =>
+        Promise.resolve(seatKey !== '1:2'),
+    ),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrderController],
-      providers: [FilmsService, OrderService],
-    })
-      .useMocker((token) => {
-        if (token === 'REPOSITORY') {
-          return fakeRepository;
-        }
-        throw new Error(`Token ${token.toString()} not found!`);
-      })
-      .compile();
+      providers: [
+        OrderService,
+        { provide: 'FILMS_REPOSITORY', useValue: filmsRepository },
+      ],
+    }).compile();
 
     controller = module.get<OrderController>(OrderController);
   });
 
-  it('should succeed if place is empty', async () => {
+  it('should be defined', () => {
     expect(controller).toBeDefined();
-    const res = await controller.createOrder({
-      email: 'xxx',
-      phone: '+7',
-      tickets: [fixtures.postOrderTicket],
-    });
-    expect(res).toEqual({ total: 1, items: [fixtures.postOrderTicket] });
   });
 
-  it('should fail if place is busy', async () => {
-    expect(controller).toBeDefined();
-    const requestSeatTaken = { ...fixtures.postOrderTicket, row: 1, seat: 2 };
-    const res = controller.createOrder({
-      email: 'xxx',
-      phone: '+7',
-      tickets: [requestSeatTaken],
+  it('should succeed if the seat is empty', async () => {
+    const res = await controller.createOrder({
+      email: 'user@example.com',
+      phone: '+70000000000',
+      tickets: [fixtures.postOrderTicket],
     });
+
+    expect(res.total).toBe(1);
+    expect(res.items).toHaveLength(1);
+    expect(res.items[0]).toMatchObject(fixtures.postOrderTicket);
+    expect(res.items[0].id).toEqual(expect.any(String));
+  });
+
+  it('should fail if the seat is busy', async () => {
+    const res = controller.createOrder({
+      email: 'user@example.com',
+      phone: '+70000000000',
+      tickets: [fixtures.takenOrderTicket],
+    });
+
     await expect(res).rejects.toThrow('already taken');
   });
 });

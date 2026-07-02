@@ -1,44 +1,48 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilmsController } from './films.controller';
 import { FilmsService } from './films.service';
+import { IFilmsRepository } from '../repository/films.repository.interface';
 import { fixtures } from './films.fixtures';
 
 describe('FilmsController', () => {
   let controller: FilmsController;
 
+  const filmsRepository: IFilmsRepository = {
+    getAll: jest.fn().mockResolvedValue(fixtures.films),
+    getById: jest.fn().mockResolvedValue(fixtures.film),
+    getSchedule: jest.fn().mockResolvedValue(fixtures.schedule),
+    bookSeatAtomic: jest.fn().mockResolvedValue(true),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FilmsController],
-      providers: [FilmsService],
-    })
-      .useMocker((token) => {
-        if (token === 'REPOSITORY') {
-          return {
-            films: {
-              findAll: jest.fn().mockResolvedValue(fixtures.films),
-              findById: jest.fn().mockResolvedValue(fixtures.film),
-            },
-          };
-        }
-        throw new Error(`Token ${token.toString()} not found!`);
-      })
-      .compile();
+      providers: [
+        FilmsService,
+        { provide: 'FILMS_REPOSITORY', useValue: filmsRepository },
+      ],
+    }).compile();
 
     controller = module.get<FilmsController>(FilmsController);
   });
 
-  it('should find all films', async () => {
+  it('should be defined', () => {
     expect(controller).toBeDefined();
-    const findResult = await controller.getAll();
-    expect(findResult).toEqual(fixtures.films);
   });
 
-  it('should find one schedule', async () => {
-    expect(controller).toBeDefined();
-    const findResult = await controller.getSchedule('11');
-    expect(findResult).toEqual({
-      total: fixtures.film.schedule.length,
-      items: fixtures.film.schedule,
+  it('should return all films with total', async () => {
+    const result = await controller.getAll();
+    expect(result).toEqual({
+      total: fixtures.films.length,
+      items: fixtures.films,
+    });
+  });
+
+  it('should return a film schedule with total', async () => {
+    const result = await controller.getSchedule(fixtures.film.id);
+    expect(result).toEqual({
+      total: fixtures.schedule.length,
+      items: fixtures.schedule,
     });
   });
 });
