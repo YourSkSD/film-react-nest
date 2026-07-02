@@ -4,6 +4,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+# Build and fail loudly if the entrypoint was emitted empty (e.g. stale cache).
+RUN npm run build && test -s dist/main.js
 
 CMD ["npm", "run", "start:prod"]
