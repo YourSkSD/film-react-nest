@@ -1,6 +1,9 @@
 # Normalize line endings: LF in the repo, auto on checkout.
 * text=auto eol=lf
 
+# Shell scripts must stay LF — CRLF breaks the shebang inside Linux containers.
+*.sh text eol=lf
+
 # Binary assets — never touch line endings.
 *.png binary
 *.jpg binary
