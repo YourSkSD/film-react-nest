@@ -1,6 +1,7 @@
 services:
   database:
     image: postgres:16.4
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -25,7 +26,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin4_container
-    restart: always
+    restart: unless-stopped
     ports:
       - '8080:80'
     environment:
@@ -38,6 +39,8 @@ services:
 
   frontend:
     image: 'ghcr.io/${OWNER}/films_frontend:latest'
+    # build-only container that just populates the frontend_build volume, then exits 0
+    restart: 'no'
     build:
       context: frontend
       args:
@@ -49,6 +52,7 @@ services:
 
   backend:
     image: 'ghcr.io/${OWNER}/films_backend:latest'
+    restart: unless-stopped
     build:
       context: backend
     environment:
@@ -68,6 +72,7 @@ services:
 
   server:
     image: 'ghcr.io/${OWNER}/films_server:latest'
+    restart: unless-stopped
     build:
       context: nginx
     ports:

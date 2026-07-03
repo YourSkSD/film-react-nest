@@ -1,3 +1,4 @@
+# --- build stage: install all deps and build the static bundle ---
 FROM node:20-alpine AS builder
 WORKDIR /app
 
@@ -15,3 +16,8 @@ RUN npm ci
 COPY . .
 # Fail the build if the HTML entry was emitted empty (e.g. stale cache).
 RUN npm run build && test -s dist/index.html
+
+# --- final stage: only the built static assets (no node_modules, no sources) ---
+FROM alpine AS production
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
