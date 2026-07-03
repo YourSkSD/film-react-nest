@@ -38,19 +38,11 @@ services:
 
   frontend:
     image: 'ghcr.io/${OWNER}/films_frontend:latest'
-    build:
-      context: frontend
-      args:
-        VITE_BASE_URL: /
-        VITE_API_URL: /api/afisha
-        VITE_CDN_URL: /content/afisha
     volumes:
       - frontend_build:/app/dist
 
   backend:
     image: 'ghcr.io/${OWNER}/films_backend:latest'
-    build:
-      context: backend
     environment:
       PORT: ${BACKEND_PORT}
       DEBUG: '*'
@@ -68,8 +60,6 @@ services:
 
   server:
     image: 'ghcr.io/${OWNER}/films_server:latest'
-    build:
-      context: nginx
     ports:
       - '80:80'
     volumes:
