@@ -32,7 +32,10 @@ import { Schedule } from './repository/entities/schedule.entity';
           'postgres',
         );
 
-        const type = configService.get<string>(' DATABASE_DRIVER', 'postgres');
+        const type = configService.get<'postgres'>(
+          'DATABASE_DRIVER',
+          'postgres',
+        );
 
         return {
           type: type,

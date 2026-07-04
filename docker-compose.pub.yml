@@ -1,0 +1,84 @@
+services:
+  database:
+    image: postgres:16.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - '5432:5432'
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - internal
+
+  frontend:
+    image: 'ghcr.io/${OWNER}/films_frontend:latest'
+    # build-only container that just populates the frontend_build volume, then exits 0
+    restart: 'no'
+    volumes:
+      - frontend_build:/app/dist
+
+  backend:
+    image: 'ghcr.io/${OWNER}/films_backend:latest'
+    restart: unless-stopped
+    environment:
+      PORT: ${BACKEND_PORT}
+      DEBUG: '*'
+      DATABASE_DRIVER: ${DATABASE_DRIVER}
+      DATABASE_URL: '${DATABASE_DRIVER}://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}'
+      DATABASE_USERNAME: ${DB_USER}
+      DATABASE_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - '${BACKEND_PORT}:${BACKEND_PORT}'
+    networks:
+      - internal
+    depends_on:
+      database:
+        condition: service_healthy
+
+  server:
+    image: 'ghcr.io/${OWNER}/films_server:latest'
+    restart: unless-stopped
+    ports:
+      - '81:80'
+    volumes:
+      - frontend_build:/var/www
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - internal
+
+volumes:
+  db_data:
+  pgadmin-data:
+  frontend_build:
+
+networks:
+  internal:
